@@ -274,10 +274,17 @@
 
             <!-- Certify -->
             <section v-show="isBaseCompany || agmDateValid">
-              <header>
-                <h2
-                  id="certify-header"
-                >
+              <header v-if="isBaseCompany">
+                <h2>
+                  Authorization
+                </h2>
+                <p>
+                  Confirm your authorization to complete and submit this application. The name of the person
+                  submitting this filing will be displayed in the history of filings for this {{ displayName() }}.
+                </p>
+              </header>
+              <header v-else>
+                <h2 id="certify-header">
                   Certify
                 </h2>
                 <p>Enter the legal name of the person authorized to complete and submit this Annual Report</p>
@@ -287,6 +294,8 @@
                 :certifiedBy.sync="certifiedBy"
                 :entityDisplay="displayName()"
                 :message="certifyMessage"
+                :showLegalName="!isBaseCompany"
+                :authorizationMode="confirmationTypeMessage"
                 @valid="certifyFormValid=$event"
               />
             </section>
@@ -585,6 +594,13 @@ export default class AnnualReport extends Mixins(CommonMixin, DateMixin, FilingM
       return this.certifyText(FilingCodes.ANNUAL_REPORT_BC)
     }
     return this.certifyText(FilingCodes.ANNUAL_REPORT_OT)
+  }
+
+  get confirmationTypeMessage (): string {
+    if (this.isBaseCompany) {
+      return this.authorizationMode(FilingCodes.ANNUAL_REPORT_BC)
+    }
+    return this.authorizationMode(FilingCodes.ANNUAL_REPORT_OT)
   }
 
   /** The Base URL string. */
@@ -1076,13 +1092,14 @@ export default class AnnualReport extends Mixins(CommonMixin, DateMixin, FilingM
     const header: any = {
       header: {
         name: FilingTypes.ANNUAL_REPORT,
-        certifiedBy: this.certifiedBy || '',
+        certifiedBy: this.isBaseCompany ? undefined : (this.certifiedBy || undefined),
         email: 'no_one@never.get',
         date: this.getCurrentDate, // NB: API will reassign this date according to its clock
         ARFilingYear: this.ARFilingYear, // NB: used by TodoList when loading draft AR
         effectiveDate: this.yyyyMmDdToApi(this.asOfDate),
         folioNumber: this.getTransactionalFolioNumber || this.getFolioNumber || undefined,
-        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber
+        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber,
+        ...(this.isBaseCompany ? { authorizationReceived: this.isCertified } : {})
       }
     }
 

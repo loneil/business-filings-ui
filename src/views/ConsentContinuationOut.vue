@@ -155,8 +155,19 @@
 
             <!-- Certify -->
             <section>
-              <header>
-                <h2>Certify</h2>
+              <header v-if="isBaseCompany">
+                <h2>
+                  Authorization
+                </h2>
+                <p class="grey-text">
+                  Confirm your authorization to complete and submit this application. The name of the person
+                  submitting this filing will be displayed in the history of filings for this {{ displayName() }}.
+                </p>
+              </header>
+              <header v-else>
+                <h2>
+                  Certify
+                </h2>
                 <p class="grey-text">
                   Enter the legal name of the person authorized to complete and submit this filing.
                 </p>
@@ -173,6 +184,8 @@
                   :disableEdit="!IsAuthorized(AuthorizedActions.EDITABLE_CERTIFY_NAME)"
                   :entityDisplay="displayName()"
                   :message="certifyText(FilingCodes.ANNUAL_REPORT_OT)"
+                  :showLegalName="!isBaseCompany"
+                  :authorizationMode="authorizationMode(FilingCodes.CONSENT_CONTINUATION_OUT)"
                   @valid="certifyFormValid=$event"
                 />
               </div>
@@ -487,7 +500,8 @@ export default class ConsentContinuationOut extends Mixins(CommonMixin, DateMixi
     this.dataLoaded = true
 
     // Pre-populate the certified block with the logged in user's name if no permission for blank certificate
-    if (!IsAuthorized(AuthorizedActions.BLANK_CERTIFY_STATE) && this.getUserInfo) {
+    // Corporations do not have a certifiedBy field
+    if (!this.isBaseCompany && !IsAuthorized(AuthorizedActions.BLANK_CERTIFY_STATE) && this.getUserInfo) {
       this.certifiedBy = this.getUserInfo.firstname + ' ' + this.getUserInfo.lastname
     }
 
@@ -669,8 +683,8 @@ export default class ConsentContinuationOut extends Mixins(CommonMixin, DateMixi
     // if there is an invalid component, scroll to it
     if (!this.isPageValid) {
       this.showErrors = true
-      if (!this.certifyFormValid) {
-        // Show error message of legal name text field if invalid
+      if (!this.certifyFormValid && !this.isBaseCompany) {
+        // Show error message of legal name text field if invalid (not applicable for corporations)
         this.$refs.certifyRef.$refs.certifyTextfieldRef.error = true
       }
       await this.validateAndScroll(this.validFlags, this.validComponents)
@@ -768,11 +782,12 @@ export default class ConsentContinuationOut extends Mixins(CommonMixin, DateMixi
     const header: any = {
       header: {
         name: FilingTypes.CONSENT_CONTINUATION_OUT,
-        certifiedBy: this.certifiedBy || '',
+        certifiedBy: this.isBaseCompany ? undefined : (this.certifiedBy || undefined),
         email: this.getBusinessEmail || undefined,
         date: this.getCurrentDate, // NB: API will reassign this date according to its clock
         folioNumber: this.getTransactionalFolioNumber || this.getFolioNumber || undefined,
-        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber
+        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber,
+        ...(this.isBaseCompany ? { authorizationReceived: this.isCertified } : {})
       }
     }
 

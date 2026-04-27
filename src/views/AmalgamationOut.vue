@@ -205,7 +205,17 @@
             <section>
               <header>
                 <h2>Certify</h2>
-                <p class="grey-text">
+                <p
+                  v-if="isBaseCompany"
+                  class="grey-text"
+                >
+                  Certify your authorization to complete and submit this application. The name of the person submitting
+                  this filing will be displayed in the history of filings for this {{ displayName() }}.
+                </p>
+                <p
+                  v-else
+                  class="grey-text"
+                >
                   Enter the legal name of the person authorized to complete and submit this filing.
                 </p>
               </header>
@@ -220,6 +230,8 @@
                   :class="{ 'invalid-component': !certifyFormValid && showErrors }"
                   :entityDisplay="displayName()"
                   :message="certifyText(FilingCodes.AMALGAMATION_OUT)"
+                  :showLegalName="!isBaseCompany"
+                  :authorizationMode="authorizationMode(FilingCodes.AMALGAMATION_OUT)"
                   @valid="certifyFormValid=$event"
                 />
               </div>
@@ -711,7 +723,8 @@ export default class AmalgamationOut extends Mixins(CommonMixin, DateMixin, Fili
       if (!this.detailCommentValid) {
         this.$refs.detailCommentRef.$refs.textarea.error = true
       }
-      if (!this.certifyFormValid) {
+      if (!this.certifyFormValid && !this.isBaseCompany) {
+        // Show error message of legal name text field if invalid (not applicable for corporations)
         this.$refs.certifyRef.$refs.certifyTextfieldRef.error = true
       }
 
@@ -800,9 +813,10 @@ export default class AmalgamationOut extends Mixins(CommonMixin, DateMixin, Fili
     const header: any = {
       header: {
         name: FilingTypes.AMALGAMATION_OUT,
-        certifiedBy: this.certifiedBy || '',
+        certifiedBy: this.isBaseCompany ? undefined : (this.certifiedBy || undefined),
         email: this.getBusinessEmail || undefined,
-        date: this.getCurrentDate // NB: API will reassign this date according to its clock
+        date: this.getCurrentDate, // NB: API will reassign this date according to its clock
+        ...(this.isBaseCompany ? { authorizationReceived: this.isCertified } : {})
       }
     }
 

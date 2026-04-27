@@ -115,10 +115,17 @@
 
             <!-- Certify -->
             <section>
-              <header>
+              <header v-if="isBaseCompany">
+                <h2>Authorization</h2>
+                <p class="grey-text">
+                  Confirm your authorization to complete and submit this application. The name of the person submitting
+                  this filing will be displayed in the history of filings for this {{ displayName() }}.
+                </p>
+              </header>
+              <header v-else>
                 <h2>Certify</h2>
                 <p class="grey-text">
-                  Confirm the legal name of the person authorized to complete and submit this withdrawal.
+                  Enter the legal name of the person authorized to complete and submit this filing.
                 </p>
               </header>
               <div
@@ -133,6 +140,8 @@
                   :disableEdit="!IsAuthorized(AuthorizedActions.EDITABLE_CERTIFY_NAME)"
                   :entityDisplay="displayName()"
                   :message="certifyText(FilingCodes.NOTICE_OF_WITHDRAWAL)"
+                  :showLegalName="!isBaseCompany"
+                  :authorizationMode="authorizationMode(FilingCodes.NOTICE_OF_WITHDRAWAL)"
                   @valid="certifyFormValid=$event"
                 />
               </div>
@@ -425,7 +434,8 @@ export default class NoticeOfWithdrawal extends Mixins(CommonMixin, DateMixin, F
       this.dataLoaded = true
 
       // Pre-populate the certified block with the logged in user's name unless they have proper permissions.
-      if (!IsAuthorized(AuthorizedActions.BLANK_CERTIFY_STATE) && this.getUserInfo) {
+      // Corporations do not have a certifiedBy field
+      if (!this.isBaseCompany && !IsAuthorized(AuthorizedActions.BLANK_CERTIFY_STATE) && this.getUserInfo) {
         this.certifiedBy = this.getUserInfo.firstname + ' ' + this.getUserInfo.lastname
       }
 
@@ -449,8 +459,8 @@ export default class NoticeOfWithdrawal extends Mixins(CommonMixin, DateMixin, F
       // if there is an invalid component, scroll to it
       if (!this.isPageValid) {
         this.showErrors = true
-        if (!this.certifyFormValid) {
-          // Show error message of legal name text field if invalid
+        if (!this.certifyFormValid && !this.isBaseCompany) {
+          // Show error message of legal name text field if invalid (not applicable for corporations)
           this.$refs.certifyRef.$refs.certifyTextfieldRef.error = true
         }
         await this.validateAndScroll(this.validFlags, this.validComponents)
@@ -543,9 +553,10 @@ export default class NoticeOfWithdrawal extends Mixins(CommonMixin, DateMixin, F
       const header: any = {
         header: {
           name: FilingTypes.NOTICE_OF_WITHDRAWAL,
-          certifiedBy: this.certifiedBy || '',
+          certifiedBy: this.isBaseCompany ? undefined : (this.certifiedBy || undefined),
           email: this.getBusinessEmail || undefined,
-          date: this.getCurrentDate // NB: API will reassign this date according to its clock
+          date: this.getCurrentDate, // NB: API will reassign this date according to its clock
+          ...(this.isBaseCompany ? { authorizationReceived: this.isCertified } : {})
         }
       }
 

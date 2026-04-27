@@ -93,7 +93,14 @@
 
             <!-- Certify -->
             <section class="mt-8 step-section">
-              <header>
+              <header v-if="isBaseCompany">
+                <h2>Authorization</h2>
+                <p class="grey-text">
+                  Confirm your authorization to complete and submit this application. The name of the person submitting
+                  this filing will be displayed in the history of filings for this {{ displayName() }}.
+                </p>
+              </header>
+              <header v-else>
                 <h2>Certify</h2>
                 <p class="grey-text">
                   Enter the legal name of the person authorized to complete and submit this filing.
@@ -111,6 +118,8 @@
                   :disableEdit="!IsAuthorized(AuthorizedActions.EDITABLE_CERTIFY_NAME)"
                   :entityDisplay="displayName()"
                   :message="certifyText(FilingCodes.AGM_EXTENSION)"
+                  :showLegalName="!isBaseCompany"
+                  :authorizationMode="authorizationMode(FilingCodes.AGM_EXTENSION)"
                   @valid="certifyFormValid=$event"
                 />
               </div>
@@ -334,7 +343,8 @@ export default class AgmExtension extends Mixins(CommonMixin, DateMixin, FilingM
     this.data.incorporationDate = this.getFoundingDate
 
     // Pre-populate the certified block with the logged in user's name (if no permission for blank certificate)
-    if (!IsAuthorized(AuthorizedActions.BLANK_CERTIFY_STATE) && this.getUserInfo) {
+    // Corporations do not have a certifiedBy field
+    if (!this.isBaseCompany && !IsAuthorized(AuthorizedActions.BLANK_CERTIFY_STATE) && this.getUserInfo) {
       this.certifiedBy = this.getUserInfo.firstname + ' ' + this.getUserInfo.lastname
     }
 
@@ -367,8 +377,8 @@ export default class AgmExtension extends Mixins(CommonMixin, DateMixin, FilingM
       if (!this.extensionRequestValid) {
         // nothing to do here -- "showErrors" will do it all
       }
-      if (!this.certifyFormValid) {
-        // Show error message of legal name text field if invalid
+      if (!this.certifyFormValid && !this.isBaseCompany) {
+        // Show error message of legal name text field if invalid (not applicable for corporations)
         this.$refs.certifyRef.$refs.certifyTextfieldRef.error = true
       }
       await this.validateAndScroll(this.validFlags, this.validComponents)
@@ -465,10 +475,11 @@ export default class AgmExtension extends Mixins(CommonMixin, DateMixin, FilingM
     const header: any = {
       header: {
         name: FilingTypes.AGM_EXTENSION,
-        certifiedBy: this.certifiedBy || '',
+        certifiedBy: this.isBaseCompany ? undefined : (this.certifiedBy || undefined),
         date: this.getCurrentDate, // NB: API will reassign this date according to its clock
         folioNumber: this.getTransactionalFolioNumber || this.getFolioNumber || undefined,
-        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber
+        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber,
+        ...(this.isBaseCompany ? { authorizationReceived: this.isCertified } : {})
       }
     }
 

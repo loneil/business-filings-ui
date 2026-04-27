@@ -275,7 +275,16 @@
 
                 <!-- Certify -->
                 <section>
-                  <header>
+                  <header v-if="isBaseCompany">
+                    <h2 id="certify-header">
+                      Authorization
+                    </h2>
+                    <p>
+                      Confirm your authorization to complete and submit this application. The name of the person
+                      submitting this filing will be displayed in the history of filings for this {{ displayName() }}.
+                    </p>
+                  </header>
+                  <header v-else>
                     <h2 id="certify-header">
                       Certify
                     </h2>
@@ -289,6 +298,8 @@
                     :certifiedBy.sync="certifiedBy"
                     :entityDisplay="displayName()"
                     :message="certifyText(feeCode)"
+                    :showLegalName="!isBaseCompany"
+                    :authorizationMode="authorizationMode(feeCode)"
                     @valid="certifyFormValid=$event"
                   />
                 </section>
@@ -912,12 +923,13 @@ export default class StandaloneDirectorsFiling extends Mixins(CommonMixin, DateM
     const header: any = {
       header: {
         name: FilingTypes.CHANGE_OF_DIRECTORS,
-        certifiedBy: this.certifiedBy || '',
+        certifiedBy: this.isBaseCompany ? undefined : (this.certifiedBy || undefined),
         email: 'no_one@never.get',
         date: this.getCurrentDate, // NB: API will reassign this date according to its clock
         effectiveDate: this.yyyyMmDdToApi(this.codDate),
         folioNumber: this.getTransactionalFolioNumber || this.getFolioNumber || undefined,
-        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber
+        isTransactionalFolioNumber: !!this.getTransactionalFolioNumber,
+        ...(this.isBaseCompany ? { authorizationReceived: this.isCertified } : {})
       }
     }
 

@@ -1517,7 +1517,8 @@ describe('Annual Report - Part 5 - Data', () => {
                 annualReport: {},
                 business: {},
                 header: {
-                  filingId: 123
+                  filingId: 123,
+                  certifiedBy: 'Full Name'
                 }
               }
             }
@@ -1695,8 +1696,10 @@ describe('Annual Report - Part 5 - Data', () => {
     // click the Save button
     // await wrapper.find('#ar-save-btn').trigger('click')
     // work-around because click trigger isn't working
-    await vm.onClickSave()
+    vm.certifiedBy = 'Full Name'
+    await Vue.nextTick()
 
+    await vm.onClickSave()
     const payload = spy.args[0][1]
 
     // basic tests to pass ensuring structure of payload is as expected
@@ -1873,7 +1876,7 @@ describe('Annual Report - Part 5B - Data (BCOMP)', () => {
     expect(payload.filing.annualReport.offices.recordsOffice).toBeDefined()
   })
 
-  it('includes certification data in the header', async () => {
+  it('includes authorization data in the header', async () => {
     const button = wrapper.find('#ar-file-pay-bc-btn')
     expect(button.attributes('disabled')).toBeUndefined()
 
@@ -1890,7 +1893,7 @@ describe('Annual Report - Part 5B - Data (BCOMP)', () => {
     expect(payload.filing.annualReport).toBeDefined()
     expect(payload.filing.header).toBeDefined()
 
-    expect(payload.filing.header.certifiedBy).toBeDefined()
+    expect(payload.filing.header.authorizationReceived).toBeDefined()
     expect(payload.filing.header.email).toBeDefined()
 
     expect(payload.filing.header.routingSlipNumber).toBeUndefined() // normally not saved
